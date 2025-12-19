@@ -11,7 +11,7 @@ app = FastAPI(title="Economy Backend API", version="1.0.0")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 라우터 등록
-app.include_router(ui_router)                  # /
+app.include_router(ui_router)                
 app.include_router(exchange_router, prefix="/exchange", tags=["exchange"])
 app.include_router(news_router, prefix="/news", tags=["news"])
 
