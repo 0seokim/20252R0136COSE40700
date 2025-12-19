@@ -1,4 +1,4 @@
-fastapi 
-uvicorn 
-httpx 
-python-dateutil
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+httpx==0.27.2
+sqlalchemy==2.0.36

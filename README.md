@@ -4,9 +4,9 @@
 
 project/
   app/
-    main.py
-    database.py
-    models.py
+    main.py : app entry point
+    database.py 
+    models.py : define ORM models 
     routers/
       __init__.py
       exchange.py
@@ -15,12 +15,12 @@ project/
       ui.py
   static/
     index.html
-  data/                # (호스트/볼륨에 마운트 권장)
+  data/                
   requirements.txt
-  Dockerfile
-  docker-compose.yml
+  Dockerfile : container build script
+  docker-compose.yaml : local/server's distribution compose  
   k8s/
-    deployment.yaml
-    service.yaml
-    pvc.yaml
-    cronjob.yaml
+    deployment.yaml : fastapi
+    service.yaml : DNS
+    pvc.yaml : DB backup
+    cronjob.yaml : scheduler
