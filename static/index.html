@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>경제 대시보드 (최소 UI)</title>
+  <title>경제 대시보드 </title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
     h1 { margin: 0 0 12px; font-size: 22px; }
@@ -20,8 +20,8 @@
   </style>
 </head>
 <body>
-  <h1>경제 대시보드 (최소 UI)</h1>
-  <div class="muted">FastAPI가 /exchange, /news 를 제공한다고 가정합니다.</div>
+  <h1>경제 대시보드 </h1>
+  <div class="muted">환율 정보 및 경제 관련 이슈 </div>
 
   <div class="box">
     <h2 style="margin:0 0 10px; font-size:18px;">환율 (최근 N일)</h2>
@@ -66,73 +66,123 @@
   </div>
 
 <script>
-  function num(x, digits) {
+  async function safeRead(res) {
+    const txt = await res.text();
+    try {
+      return { ok: res.ok, json: JSON.parse(txt), raw: txt, status: res.status };
+    } catch {
+      return { ok: res.ok, json: null, raw: txt, status: res.status };
+    }
+  }
+
+    function num(x, digits) {
     if (x === null || x === undefined) return "-";
     return Number(x).toFixed(digits);
   }
 
   async function loadExchange() {
     const days = document.getElementById("days").value || 14;
-    const err = document.getElementById("exchangeError");
-    const range = document.getElementById("exchangeRange");
-    const table = document.getElementById("exchangeTable");
-    const body = document.getElementById("exchangeBody");
-    err.textContent = "";
-    range.textContent = "";
-    body.innerHTML = "";
-    table.style.display = "none";
+    const errEl = document.getElementById("exchangeError");
+    const rangeEl = document.getElementById("exchangeRange");
+    const tableEl = document.getElementById("exchangeTable");
+    const bodyEl = document.getElementById("exchangeBody");
+
+    // DOM 존재 검증
+    if (!errEl || !rangeEl || !tableEl || !bodyEl) {
+      console.error("Missing DOM elements:", { errEl, rangeEl, tableEl, bodyEl });
+      return;
+    }
+
+    errEl.textContent = "";
+    rangeEl.textContent = "불러오는 중...";
+    bodyEl.innerHTML = "";
+    tableEl.style.display = "";          // ✅ 일단 테이블을 보이게
 
     try {
+      // (선택) refresh 먼저 하고 싶으면 주석 해제
+      // await fetch(`/exchange/refresh?days=${encodeURIComponent(days)}`, { method: "POST" });
+
       const res = await fetch(`/exchange?days=${encodeURIComponent(days)}`);
-      const data = await res.json();
+      const txt = await res.text();
+
+      // JSON 파싱 안전 처리
+      let data;
+      try { data = JSON.parse(txt); }
+      catch { throw new Error("Response is not JSON:\n" + txt); }
+
       if (!res.ok) throw new Error(JSON.stringify(data, null, 2));
 
-      range.textContent = `기간: ${data.range.start} ~ ${data.range.end} · ${data.note || ""}`;
+      const rows = data.rows || [];
+      rangeEl.textContent = `기간: ${data.range?.start ?? "?"} ~ ${data.range?.end ?? "?"}`;
 
-      for (const r of (data.rows || [])) {
+      if (rows.length === 0) {
+        errEl.textContent = "표시할 환율 데이터가 없습니다. (먼저 /exchange/refresh 를 호출해야 할 수 있어요)";
+        return;
+      }
+
+      for (const r of rows) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${r.date}</td>
+          <td>${r.date ?? "-"}</td>
           <td>${num(r.usd_krw, 2)}</td>
           <td>${num(r.eur_krw, 2)}</td>
           <td>${num(r.jpy_krw, 4)}</td>
           <td>${num(r.jpy100_krw, 2)}</td>
         `;
-        body.appendChild(tr);
+        bodyEl.appendChild(tr);
       }
-      table.style.display = "";
+
     } catch (e) {
-      err.textContent = String(e);
+      rangeEl.textContent = "";
+      errEl.textContent = String(e);
+      console.error(e);
     }
   }
+
 
   async function loadNews() {
     const timespan = document.getElementById("timespan").value || "1d";
     const maxrecords = document.getElementById("maxrecords").value || 20;
+
     const err = document.getElementById("newsError");
     const meta = document.getElementById("newsMeta");
     const list = document.getElementById("newsList");
+
     err.textContent = "";
     meta.textContent = "";
     list.innerHTML = "";
 
     try {
-      const res = await fetch(`/news?timespan=${encodeURIComponent(timespan)}&maxrecords=${encodeURIComponent(maxrecords)}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(JSON.stringify(data, null, 2));
+      // 1) refresh (저장) - 이미 저장돼 있어도 OK
+      const r1 = await fetch(`/news/refresh?timespan=${encodeURIComponent(timespan)}&maxrecords=${encodeURIComponent(maxrecords)}`, {
+        method: "POST",
+      });
+      const a1 = await safeRead(r1);
+      if (!a1.ok) throw new Error(`refresh failed (${a1.status})\n` + (a1.json ? JSON.stringify(a1.json, null, 2) : a1.raw));
 
-      meta.textContent = `timespan=${data.timespan} · ${data.count}건`;
+      // 2) get (조회)
+      const r2 = await fetch(`/news?limit=${encodeURIComponent(maxrecords)}`);
+      const a2 = await safeRead(r2);
+      if (!a2.ok) throw new Error(`get failed (${a2.status})\n` + (a2.json ? JSON.stringify(a2.json, null, 2) : a2.raw));
 
-      for (const a of (data.articles || [])) {
+      const data = a2.json || {};
+      const articles = data.articles || [];
+
+      meta.textContent = `timespan=${timespan} · ${articles.length}건`;
+
+      if (articles.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "DB에 저장된 뉴스가 없습니다.";
+        list.appendChild(li);
+        return;
+      }
+
+      for (const a of articles) {
         const li = document.createElement("li");
         li.style.marginBottom = "10px";
-        const title = a.title || "(no title)";
-        const url = a.url || "#";
-        const domain = a.domain ? ` · ${a.domain}` : "";
-        const seendate = a.seendate ? ` · ${a.seendate}` : "";
         li.innerHTML = `
-          <a href="${url}" target="_blank" rel="noreferrer">${title}</a>
-          <div class="muted">${domain}${seendate}</div>
+          <a href="${a.url}" target="_blank" rel="noreferrer">${a.title || "(no title)"}</a>
+          <div class="muted">${a.domain ? " · " + a.domain : ""}${a.seendate ? " · " + a.seendate : ""}</div>
         `;
         list.appendChild(li);
       }
@@ -140,11 +190,8 @@
       err.textContent = String(e);
     }
   }
-
-  // 페이지 열자마자 한번 로드(원치 않으면 삭제)
-  loadExchange();
-  loadNews();
 </script>
+
 </body>
 </html>
 
