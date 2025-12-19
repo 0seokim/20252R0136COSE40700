@@ -1,0 +1,31 @@
+services:
+  api:
+    build: .
+    container_name: econ-api
+    environment:
+      - TZ=Asia/Seoul
+      - DATA_DIR=/app/data
+      - DB_PATH=/app/data/app.db
+    volumes:
+      - ./data:/app/data
+      - ./static:/app/static
+    ports:
+      - "8000:8000"
+
+  # 주 1회 /backup 호출용 (간단 cron)
+  scheduler:
+    image: alpine:3.20
+    depends_on:
+      - api
+    environment:
+      - TZ=Asia/Seoul
+      # 포맷 옵션: all|sqlite|json|csv
+      - BACKUP_FORMAT=all
+    volumes:
+      - ./data:/data
+    command: >
+      sh -c "
+      apk add --no-cache curl busybox-suid tzdata &&
+      echo '0 0 * * 0 curl -s -X POST http://api:8000/backup?format=$BACKUP_FORMAT >/dev/null 2>&1' > /etc/crontabs/root &&
+      crond -f -l 8
+      "
