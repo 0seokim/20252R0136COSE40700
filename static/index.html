@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>경제 대시보드 (최소 UI)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
+    h1 { margin: 0 0 12px; font-size: 22px; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+    input { padding: 6px 8px; }
+    button { padding: 7px 10px; cursor: pointer; }
+    .box { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin: 14px 0; }
+    table { border-collapse: collapse; width: 100%; min-width: 680px; }
+    th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; font-size: 14px; }
+    .muted { color: #666; font-size: 13px; }
+    .scroll { overflow-x: auto; }
+    a { text-decoration: underline; }
+    .err { color: #b00020; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>경제 대시보드 (최소 UI)</h1>
+  <div class="muted">FastAPI가 /exchange, /news 를 제공한다고 가정합니다.</div>
+
+  <div class="box">
+    <h2 style="margin:0 0 10px; font-size:18px;">환율 (최근 N일)</h2>
+    <div class="row">
+      <label>days:
+        <input id="days" type="number" min="2" max="60" value="14" />
+      </label>
+      <button onclick="loadExchange()">환율 불러오기</button>
+      <span id="exchangeRange" class="muted"></span>
+    </div>
+    <div id="exchangeError" class="err"></div>
+    <div class="scroll">
+      <table id="exchangeTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>날짜</th>
+            <th>USD→KRW</th>
+            <th>EUR→KRW</th>
+            <th>JPY→KRW</th>
+            <th>100JPY→KRW</th>
+          </tr>
+        </thead>
+        <tbody id="exchangeBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2 style="margin:0 0 10px; font-size:18px;">경제 뉴스</h2>
+    <div class="row">
+      <label>timespan:
+        <input id="timespan" value="1d" />
+      </label>
+      <label>max:
+        <input id="maxrecords" type="number" min="1" max="100" value="20" />
+      </label>
+      <button onclick="loadNews()">뉴스 불러오기</button>
+      <span id="newsMeta" class="muted"></span>
+    </div>
+    <div id="newsError" class="err"></div>
+    <ol id="newsList"></ol>
+  </div>
+
+<script>
+  function num(x, digits) {
+    if (x === null || x === undefined) return "-";
+    return Number(x).toFixed(digits);
+  }
+
+  async function loadExchange() {
+    const days = document.getElementById("days").value || 14;
+    const err = document.getElementById("exchangeError");
+    const range = document.getElementById("exchangeRange");
+    const table = document.getElementById("exchangeTable");
+    const body = document.getElementById("exchangeBody");
+    err.textContent = "";
+    range.textContent = "";
+    body.innerHTML = "";
+    table.style.display = "none";
+
+    try {
+      const res = await fetch(`/exchange?days=${encodeURIComponent(days)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(JSON.stringify(data, null, 2));
+
+      range.textContent = `기간: ${data.range.start} ~ ${data.range.end} · ${data.note || ""}`;
+
+      for (const r of (data.rows || [])) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.date}</td>
+          <td>${num(r.usd_krw, 2)}</td>
+          <td>${num(r.eur_krw, 2)}</td>
+          <td>${num(r.jpy_krw, 4)}</td>
+          <td>${num(r.jpy100_krw, 2)}</td>
+        `;
+        body.appendChild(tr);
+      }
+      table.style.display = "";
+    } catch (e) {
+      err.textContent = String(e);
+    }
+  }
+
+  async function loadNews() {
+    const timespan = document.getElementById("timespan").value || "1d";
+    const maxrecords = document.getElementById("maxrecords").value || 20;
+    const err = document.getElementById("newsError");
+    const meta = document.getElementById("newsMeta");
+    const list = document.getElementById("newsList");
+    err.textContent = "";
+    meta.textContent = "";
+    list.innerHTML = "";
+
+    try {
+      const res = await fetch(`/news?timespan=${encodeURIComponent(timespan)}&maxrecords=${encodeURIComponent(maxrecords)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(JSON.stringify(data, null, 2));
+
+      meta.textContent = `timespan=${data.timespan} · ${data.count}건`;
+
+      for (const a of (data.articles || [])) {
+        const li = document.createElement("li");
+        li.style.marginBottom = "10px";
+        const title = a.title || "(no title)";
+        const url = a.url || "#";
+        const domain = a.domain ? ` · ${a.domain}` : "";
+        const seendate = a.seendate ? ` · ${a.seendate}` : "";
+        li.innerHTML = `
+          <a href="${url}" target="_blank" rel="noreferrer">${title}</a>
+          <div class="muted">${domain}${seendate}</div>
+        `;
+        list.appendChild(li);
+      }
+    } catch (e) {
+      err.textContent = String(e);
+    }
+  }
+
+  // 페이지 열자마자 한번 로드(원치 않으면 삭제)
+  loadExchange();
+  loadNews();
+</script>
+</body>
+</html>
+
