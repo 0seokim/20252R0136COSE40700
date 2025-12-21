@@ -77,6 +77,7 @@ def get_exchange(days: int = 14, db: Session = Depends(get_db)):
     """
     조회 API:
     - DB에서 최근 N일 범위 데이터를 읽어 반환
+    - 최신 날짜가 위로 오도록 내림차순 정렬
     """
     if days < 2 or days > 60:
         raise HTTPException(status_code=400, detail="days must be between 2 and 60")
@@ -84,19 +85,22 @@ def get_exchange(days: int = 14, db: Session = Depends(get_db)):
     end = date.today()
     start = end - timedelta(days=days - 1)
 
+    # ✅ 변경: day DESC로 정렬
     rows = db.execute(
-        select(ExchangeRate).where(ExchangeRate.day.between(start, end)).order_by(ExchangeRate.day.asc())
+        select(ExchangeRate)
+        .where(ExchangeRate.day.between(start, end))
+        .order_by(ExchangeRate.day.desc())
     ).scalars().all()
 
-    # day별 묶기
     by_day = {}
     for r in rows:
         ds = iso(r.day)
         by_day.setdefault(ds, {})
         by_day[ds][r.currency] = r.krw_per_unit
 
+    # ✅ 변경: 최신 날짜가 먼저 나오도록 ds도 DESC 정렬
     out = []
-    for ds in sorted(by_day.keys()):
+    for ds in sorted(by_day.keys(), reverse=True):
         u = by_day[ds].get("USD")
         e = by_day[ds].get("EUR")
         j = by_day[ds].get("JPY")
@@ -111,5 +115,5 @@ def get_exchange(days: int = 14, db: Session = Depends(get_db)):
     return {
         "range": {"start": iso(start), "end": iso(end)},
         "rows": out,
-        "note": "DB에 저장된 값 기준. (주말/휴일은 원천 데이터가 없을 수 있음)",
+        "note": "DB에 저장된 값 기준 (내림차순 정렬)",
     }

@@ -3,41 +3,198 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>경제 대시보드 </title>
+  <title>Econ Dashboard</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
-    h1 { margin: 0 0 12px; font-size: 22px; }
-    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
-    input { padding: 6px 8px; }
-    button { padding: 7px 10px; cursor: pointer; }
-    .box { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin: 14px 0; }
-    table { border-collapse: collapse; width: 100%; min-width: 680px; }
-    th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; font-size: 14px; }
-    .muted { color: #666; font-size: 13px; }
-    .scroll { overflow-x: auto; }
-    a { text-decoration: underline; }
-    .err { color: #b00020; white-space: pre-wrap; }
+    :root {
+      --border: #e6e6e6;
+      --muted: #666;
+      --error: #b00020;
+      --bg: #fafafa;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: #111;
+    }
+
+    header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      background: white;
+    }
+
+    header h1 {
+      margin: 0 0 6px 0;
+      font-size: 18px;
+    }
+    header .sub {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    main {
+      padding: 16px 20px 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      display: flex;
+      gap: 18px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+
+    .panel-left { flex: 2; min-width: 0; }
+    .panel-right {
+      flex: 1;
+      min-width: 0;
+      border-left: 1px solid var(--border);
+      padding-left: 16px;
+    }
+
+    h2 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+    }
+    h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #222;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin: 8px 0 8px;
+    }
+    .controls label {
+      font-size: 13px;
+      color: #222;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    input, textarea {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 13px;
+      background: white;
+    }
+    input[type="number"] { width: 88px; }
+    input[type="text"] { width: 110px; }
+
+    button {
+      border: 1px solid var(--border);
+      background: #111;
+      color: white;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: white;
+      color: #111;
+    }
+
+    .meta {
+      margin: 8px 0;
+      color: var(--muted);
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+
+    .error {
+      color: var(--error);
+      font-size: 13px;
+      white-space: pre-wrap;
+      margin: 8px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 8px 8px;
+      border-bottom: 1px solid #f0f0f0;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      font-weight: 600;
+      background: #fcfcfc;
+      border-bottom: 1px solid var(--border);
+    }
+
+    ul { margin: 8px 0 0; padding-left: 18px; }
+    li { margin-bottom: 10px; }
+    a { color: #0b57d0; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .muted { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+    .memo-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    footer {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    code { background: #f3f3f3; padding: 2px 6px; border-radius: 6px; }
   </style>
 </head>
-<body>
-  <h1>경제 대시보드 </h1>
-  <div class="muted">환율 정보 및 경제 관련 이슈 </div>
 
-  <div class="box">
-    <h2 style="margin:0 0 10px; font-size:18px;">환율 (최근 N일)</h2>
-    <div class="row">
-      <label>days:
-        <input id="days" type="number" min="2" max="60" value="14" />
-      </label>
-      <button onclick="loadExchange()">환율 불러오기</button>
-      <span id="exchangeRange" class="muted"></span>
-    </div>
-    <div id="exchangeError" class="err"></div>
-    <div class="scroll">
-      <table id="exchangeTable" style="display:none;">
+<body>
+<header>
+  <h1>Economic Dashboard</h1>
+  <div class="sub">환율 + 경제 뉴스 + 메모장 (FastAPI Backend)</div>
+</header>
+
+<main>
+
+  <!-- ===================== 환율 패널 ===================== -->
+  <section class="panel">
+    <div class="panel-left">
+      <h2>환율</h2>
+
+      <div class="controls">
+        <label>
+          days
+          <input id="days" type="number" value="14" min="2" max="60" />
+        </label>
+
+        <button onclick="loadExchange()">환율 불러오기</button>
+        <button class="secondary" onclick="refreshExchange()">환율 갱신(저장)</button>
+      </div>
+
+      <div id="exchangeError" class="error"></div>
+      <div id="exchangeRange" class="meta"></div>
+
+      <table id="exchangeTable">
         <thead>
           <tr>
-            <th>날짜</th>
+            <th>날짜 (최신→과거)</th>
             <th>USD→KRW</th>
             <th>EUR→KRW</th>
             <th>JPY→KRW</th>
@@ -47,151 +204,327 @@
         <tbody id="exchangeBody"></tbody>
       </table>
     </div>
-  </div>
 
-  <div class="box">
-    <h2 style="margin:0 0 10px; font-size:18px;">경제 뉴스</h2>
-    <div class="row">
-      <label>timespan:
-        <input id="timespan" value="1d" />
-      </label>
-      <label>max:
-        <input id="maxrecords" type="number" min="1" max="100" value="20" />
-      </label>
-      <button onclick="loadNews()">뉴스 불러오기</button>
-      <span id="newsMeta" class="muted"></span>
+    <div class="panel-right">
+      <h3>최근 14일 환율 그래프</h3>
+      <div class="meta" id="exchangeChartMeta">-</div>
+      <canvas id="exchangeChart" height="220"></canvas>
     </div>
-    <div id="newsError" class="err"></div>
-    <ol id="newsList"></ol>
-  </div>
+  </section>
+
+  <!-- ===================== 뉴스 + 메모 패널 ===================== -->
+  <section class="panel">
+    <div class="panel-left">
+      <h2>경제 뉴스</h2>
+
+      <div class="controls">
+        <label>
+          timespan
+          <input id="timespan" type="text" value="1d" />
+        </label>
+
+        <label>
+          maxrecords
+          <input id="maxrecords" type="number" value="20" min="1" max="100" />
+        </label>
+
+        <button onclick="loadNews()">뉴스 불러오기</button>
+        <button class="secondary" onclick="refreshNews()">뉴스 갱신(저장)</button>
+      </div>
+
+      <div id="newsError" class="error"></div>
+      <div id="newsMeta" class="meta"></div>
+      <ul id="newsList"></ul>
+    </div>
+
+    <div class="panel-right">
+      <h3>메모장</h3>
+      <div class="meta">저장하면 서버의 <code>data/notes.txt</code>로 저장됩니다.</div>
+
+      <textarea id="memoText" rows="12" style="width:100%; resize: vertical;"></textarea>
+
+      <div class="memo-actions">
+        <button class="secondary" onclick="loadMemo()">불러오기</button>
+        <button onclick="saveMemo()">저장</button>
+      </div>
+
+      <div id="memoStatus" class="meta"></div>
+    </div>
+  </section>
+
+  <footer>
+    Swagger UI: <a href="/docs" target="_blank" rel="noreferrer">/docs</a>
+  </footer>
+</main>
 
 <script>
+  // -------- helpers --------
+  let exchangeChartInstance = null;
+
+  function num(x, digits) {
+    if (x === null || x === undefined) return "-";
+    const n = Number(x);
+    if (Number.isNaN(n)) return "-";
+    return n.toFixed(digits);
+  }
+
   async function safeRead(res) {
     const txt = await res.text();
     try {
-      return { ok: res.ok, json: JSON.parse(txt), raw: txt, status: res.status };
+      return { ok: res.ok, status: res.status, json: JSON.parse(txt), raw: txt };
     } catch {
-      return { ok: res.ok, json: null, raw: txt, status: res.status };
+      return { ok: res.ok, status: res.status, json: null, raw: txt };
     }
   }
 
-    function num(x, digits) {
-    if (x === null || x === undefined) return "-";
-    return Number(x).toFixed(digits);
-  }
-
-  async function loadExchange() {
+  // -------- Exchange --------
+  async function refreshExchange() {
     const days = document.getElementById("days").value || 14;
     const errEl = document.getElementById("exchangeError");
-    const rangeEl = document.getElementById("exchangeRange");
-    const tableEl = document.getElementById("exchangeTable");
-    const bodyEl = document.getElementById("exchangeBody");
-
-    // DOM 존재 검증
-    if (!errEl || !rangeEl || !tableEl || !bodyEl) {
-      console.error("Missing DOM elements:", { errEl, rangeEl, tableEl, bodyEl });
-      return;
-    }
-
     errEl.textContent = "";
-    rangeEl.textContent = "불러오는 중...";
-    bodyEl.innerHTML = "";
-    tableEl.style.display = "";          // ✅ 일단 테이블을 보이게
 
     try {
-      // (선택) refresh 먼저 하고 싶으면 주석 해제
-      // await fetch(`/exchange/refresh?days=${encodeURIComponent(days)}`, { method: "POST" });
-
-      const res = await fetch(`/exchange?days=${encodeURIComponent(days)}`);
-      const txt = await res.text();
-
-      // JSON 파싱 안전 처리
-      let data;
-      try { data = JSON.parse(txt); }
-      catch { throw new Error("Response is not JSON:\n" + txt); }
-
-      if (!res.ok) throw new Error(JSON.stringify(data, null, 2));
-
-      const rows = data.rows || [];
-      rangeEl.textContent = `기간: ${data.range?.start ?? "?"} ~ ${data.range?.end ?? "?"}`;
-
-      if (rows.length === 0) {
-        errEl.textContent = "표시할 환율 데이터가 없습니다. (먼저 /exchange/refresh 를 호출해야 할 수 있어요)";
-        return;
-      }
-
-      for (const r of rows) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${r.date ?? "-"}</td>
-          <td>${num(r.usd_krw, 2)}</td>
-          <td>${num(r.eur_krw, 2)}</td>
-          <td>${num(r.jpy_krw, 4)}</td>
-          <td>${num(r.jpy100_krw, 2)}</td>
-        `;
-        bodyEl.appendChild(tr);
-      }
-
+      const r = await fetch(`/exchange/refresh?days=${encodeURIComponent(days)}`, { method: "POST" });
+      const a = await safeRead(r);
+      if (!a.ok) throw new Error(`refresh failed (${a.status})\n` + (a.json ? JSON.stringify(a.json, null, 2) : a.raw));
+      errEl.textContent = "환율 갱신 완료";
     } catch (e) {
-      rangeEl.textContent = "";
       errEl.textContent = String(e);
       console.error(e);
     }
   }
 
+  async function loadExchange() {
+    const days = document.getElementById("days").value || 14;
 
-  async function loadNews() {
+    const errEl = document.getElementById("exchangeError");
+    const rangeEl = document.getElementById("exchangeRange");
+    const bodyEl = document.getElementById("exchangeBody");
+    const chartMetaEl = document.getElementById("exchangeChartMeta");
+
+    errEl.textContent = "";
+    rangeEl.textContent = "";
+    bodyEl.innerHTML = "";
+    chartMetaEl.textContent = "-";
+
+    try {
+      const r = await fetch(`/exchange?days=${encodeURIComponent(days)}`);
+      const a = await safeRead(r);
+      if (!a.ok) throw new Error(`get failed (${a.status})\n` + (a.json ? JSON.stringify(a.json, null, 2) : a.raw));
+
+      const data = a.json || {};
+      const rows = data.rows || [];
+
+      rangeEl.textContent = `기간: ${data.range?.start ?? "?"} ~ ${data.range?.end ?? "?"}  ·  ${data.note ?? ""}`;
+
+      if (rows.length === 0) {
+        errEl.textContent = "표시할 환율 데이터가 없습니다. 먼저 '환율 갱신(저장)'을 눌러 데이터를 채워주세요.";
+        if (exchangeChartInstance) {
+          exchangeChartInstance.destroy();
+          exchangeChartInstance = null;
+        }
+        return;
+      }
+
+      // 테이블(내림차순: 최신→과거)
+      for (const row of rows) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.date ?? "-"}</td>
+          <td>${num(row.usd_krw, 2)}</td>
+          <td>${num(row.eur_krw, 2)}</td>
+          <td>${num(row.jpy_krw, 4)}</td>
+          <td>${num(row.jpy100_krw, 2)}</td>
+        `;
+        bodyEl.appendChild(tr);
+      }
+
+      // 차트는 보기 좋게 오름차순(과거→최신)으로
+      const asc = rows.slice().reverse();
+      const labels = asc.map(r => r.date);
+      const usd = asc.map(r => r.usd_krw);
+      const eur = asc.map(r => r.eur_krw);
+      const jpy100 = asc.map(r => r.jpy100_krw);
+
+      chartMetaEl.textContent = `표시: ${labels[0]} → ${labels[labels.length - 1]}`;
+
+      // ✅ y축 스케일을 "변동이 잘 보이게" 자동 확대 + 듀얼 축 적용
+      const allLeft = [...usd, ...eur].filter(v => typeof v === "number" && !Number.isNaN(v));
+      const allRight = [...jpy100].filter(v => typeof v === "number" && !Number.isNaN(v));
+
+      function paddedMinMax(arr, padRatio = 0.15) {
+        if (!arr.length) return { min: undefined, max: undefined };
+        let mn = Math.min(...arr);
+        let mx = Math.max(...arr);
+        if (mn === mx) {
+          const pad = Math.max(1, mn * 0.01);
+          return { min: mn - pad, max: mx + pad };
+        }
+        const pad = (mx - mn) * padRatio;
+        return { min: mn - pad, max: mx + pad };
+      }
+
+      const leftMM = paddedMinMax(allLeft, 0.20);
+      const rightMM = paddedMinMax(allRight, 0.20);
+
+      const ctx = document.getElementById("exchangeChart").getContext("2d");
+      if (exchangeChartInstance) exchangeChartInstance.destroy();
+
+      exchangeChartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            { label: "USD→KRW", data: usd, yAxisID: "y", tension: 0.2, pointRadius: 2 },
+            { label: "EUR→KRW", data: eur, yAxisID: "y", tension: 0.2, pointRadius: 2 },
+            { label: "100JPY→KRW", data: jpy100, yAxisID: "y2", tension: 0.2, pointRadius: 2 },
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "bottom" },
+            tooltip: { mode: "index", intersect: false },
+          },
+          interaction: { mode: "index", intersect: false },
+          scales: {
+            x: { ticks: { maxRotation: 45, minRotation: 45 } },
+
+            // 왼쪽 축: USD/EUR (자동 확대)
+            y: {
+              beginAtZero: false,
+              suggestedMin: leftMM.min,
+              suggestedMax: leftMM.max,
+              ticks: { callback: (v) => Number(v).toLocaleString() },
+              title: { display: true, text: "KRW (USD/EUR)" },
+            },
+
+            // 오른쪽 축: 100JPY (자동 확대)
+            y2: {
+              position: "right",
+              beginAtZero: false,
+              suggestedMin: rightMM.min,
+              suggestedMax: rightMM.max,
+              grid: { drawOnChartArea: false },
+              ticks: { callback: (v) => Number(v).toLocaleString() },
+              title: { display: true, text: "KRW (100JPY)" },
+            },
+          }
+        }
+      });
+
+    } catch (e) {
+      errEl.textContent = String(e);
+      console.error(e);
+    }
+  }
+
+  // -------- News --------
+  async function refreshNews() {
     const timespan = document.getElementById("timespan").value || "1d";
     const maxrecords = document.getElementById("maxrecords").value || 20;
 
-    const err = document.getElementById("newsError");
-    const meta = document.getElementById("newsMeta");
-    const list = document.getElementById("newsList");
-
-    err.textContent = "";
-    meta.textContent = "";
-    list.innerHTML = "";
+    const errEl = document.getElementById("newsError");
+    const metaEl = document.getElementById("newsMeta");
+    errEl.textContent = "";
+    metaEl.textContent = "저장 중...";
 
     try {
-      // 1) refresh (저장) - 이미 저장돼 있어도 OK
-      const r1 = await fetch(`/news/refresh?timespan=${encodeURIComponent(timespan)}&maxrecords=${encodeURIComponent(maxrecords)}`, {
-        method: "POST",
-      });
-      const a1 = await safeRead(r1);
-      if (!a1.ok) throw new Error(`refresh failed (${a1.status})\n` + (a1.json ? JSON.stringify(a1.json, null, 2) : a1.raw));
+      const r = await fetch(`/news/refresh?timespan=${encodeURIComponent(timespan)}&maxrecords=${encodeURIComponent(maxrecords)}`, { method: "POST" });
+      const a = await safeRead(r);
+      if (!a.ok) throw new Error(`refresh failed (${a.status})\n` + (a.json ? JSON.stringify(a.json, null, 2) : a.raw));
+      metaEl.textContent = `refresh 완료 · ${a.json ? `saved_new=${a.json.saved_new ?? "?"}, filtered=${a.json.filtered ?? "?"}` : ""}`;
+    } catch (e) {
+      errEl.textContent = String(e);
+      metaEl.textContent = "";
+      console.error(e);
+    }
+  }
 
-      // 2) get (조회)
-      const r2 = await fetch(`/news?limit=${encodeURIComponent(maxrecords)}`);
-      const a2 = await safeRead(r2);
-      if (!a2.ok) throw new Error(`get failed (${a2.status})\n` + (a2.json ? JSON.stringify(a2.json, null, 2) : a2.raw));
+  async function loadNews() {
+    const maxrecords = document.getElementById("maxrecords").value || 20;
 
-      const data = a2.json || {};
+    const errEl = document.getElementById("newsError");
+    const metaEl = document.getElementById("newsMeta");
+    const listEl = document.getElementById("newsList");
+
+    errEl.textContent = "";
+    metaEl.textContent = "불러오는 중...";
+    listEl.innerHTML = "";
+
+    try {
+      const r = await fetch(`/news?limit=${encodeURIComponent(maxrecords)}`);
+      const a = await safeRead(r);
+      if (!a.ok) throw new Error(`get failed (${a.status})\n` + (a.json ? JSON.stringify(a.json, null, 2) : a.raw));
+
+      const data = a.json || {};
       const articles = data.articles || [];
 
-      meta.textContent = `timespan=${timespan} · ${articles.length}건`;
+      metaEl.textContent = `총 ${articles.length}건 · ${data.note ?? ""}`;
 
       if (articles.length === 0) {
         const li = document.createElement("li");
-        li.textContent = "DB에 저장된 뉴스가 없습니다.";
-        list.appendChild(li);
+        li.textContent = "DB에 저장된 뉴스가 없습니다. 먼저 '뉴스 갱신(저장)'을 눌러 데이터를 채워주세요.";
+        listEl.appendChild(li);
         return;
       }
 
       for (const a of articles) {
         const li = document.createElement("li");
-        li.style.marginBottom = "10px";
         li.innerHTML = `
           <a href="${a.url}" target="_blank" rel="noreferrer">${a.title || "(no title)"}</a>
-          <div class="muted">${a.domain ? " · " + a.domain : ""}${a.seendate ? " · " + a.seendate : ""}</div>
+          <div class="muted">${a.domain ? a.domain : ""}${a.seendate ? " · " + a.seendate : ""}</div>
         `;
-        list.appendChild(li);
+        listEl.appendChild(li);
       }
+
     } catch (e) {
-      err.textContent = String(e);
+      errEl.textContent = String(e);
+      metaEl.textContent = "";
+      console.error(e);
     }
   }
+
+  // -------- Memo (notes.txt) --------
+  async function loadMemo() {
+    const statusEl = document.getElementById("memoStatus");
+    statusEl.textContent = "불러오는 중...";
+    try {
+      const r = await fetch("/notes");
+      const a = await safeRead(r);
+      if (!a.ok) throw new Error(`load failed (${a.status})\n` + (a.json ? JSON.stringify(a.json, null, 2) : a.raw));
+      document.getElementById("memoText").value = a.json?.text ?? "";
+      statusEl.textContent = "불러오기 완료";
+    } catch (e) {
+      statusEl.textContent = "불러오기 실패: " + String(e);
+      console.error(e);
+    }
+  }
+
+  async function saveMemo() {
+    const statusEl = document.getElementById("memoStatus");
+    statusEl.textContent = "저장 중...";
+    try {
+      const text = document.getElementById("memoText").value ?? "";
+      const r = await fetch("/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const a = await safeRead(r);
+      if (!a.ok) throw new Error(`save failed (${a.status})\n` + (a.json ? JSON.stringify(a.json, null, 2) : a.raw));
+      statusEl.textContent = "저장 완료 (data/notes.txt)";
+    } catch (e) {
+      statusEl.textContent = "저장 실패: " + String(e);
+      console.error(e);
+    }
+  }
+
+  // 초기 로드: 메모만 자동 불러오기
+  window.addEventListener("load", () => {
+    loadMemo().catch(() => {});
+  });
 </script>
 
 </body>
 </html>
-

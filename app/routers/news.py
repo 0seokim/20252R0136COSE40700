@@ -10,16 +10,16 @@ router = APIRouter()
 
 TRUSTED_DOMAINS = {
     # US / Global major business
-    "reuters.com",
-    "bloomberg.com",
-    "wsj.com",
-    "ft.com",
-    "nytimes.com",
-    "washingtonpost.com",
+    # "reuters.com",
+    # "bloomberg.com",
+    # "wsj.com",
+    # "ft.com",
+    # "nytimes.com",
+    # "washingtonpost.com",
     "cnbc.com",
-    "finance.yahoo.com",
-    "marketwatch.com",
-    "theeconomist.com",
+    # "finance.yahoo.com",
+    # "marketwatch.com",
+    # "theeconomist.com",
 
     # Korea major
     "yna.co.kr",
